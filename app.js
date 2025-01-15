@@ -2,13 +2,12 @@ const express = require("express");
 
 const cors = require("cors");
 const path = require("path");
+require("dotenv").config();
+
 const app = express();
+const topMediaApiKey = process.env.TOP_API_KEY;
+const baseApi = process.env.BASE_API;
 
-const baseUrl = "https://api.lalals.com/api/public/v1";
-const apiKey =
-  "qhyuHKq5LWgpsFLgL8CymG2zMOnXFr5y8P-ZVELhjqDCZ1YoohrPC397LtnpbRDSkXqz6Cu3TlLF1DuUo8Kklw";
-
-const topMediaApiKey = "6aa892bbaec14da78c66970faa901e16";
 app.use(express.json());
 app.use(cors());
 
@@ -16,50 +15,11 @@ app.get("/", (req, res) => {
   res.send({ message: "Hello Lalas-ai" });
 });
 
-app.post("/generate-music", async (req, res) => {
-  const { music_style, lyrics, prompt } = req.body;
-
-  const response = await fetch(`${baseUrl}+'/MusicAI`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      music_style,
-      prompt,
-      lyrics,
-      webhook_url: "https://wbmzv68r-3000.asse.devtunnels.ms/webhook",
-    }),
-  });
-
-  const data = await response.json();
-  res.json(data);
-});
-
-app.get("/tasks", async (req, res) => {
-  const { taskId } = req.query;
-  const response = await fetch(
-    `https://api.loveaiapi.com/music/suno/task?task_id=${taskId}`,
-    {
-      headers: {
-        Authorization: " Bearer sk-919c702e-9b94-434d-b456-c3e8ba492bfd",
-      },
-    }
-  );
-
-  const data = await response.json();
-  res.json(data);
-});
-
-app.all("/webhook", (req, res) => {
-  console.log(res);
-  res.send("Webhook received");
-});
+// top medi
 
 app.post("/generate-top", async (req, res) => {
   const { prompt, lyrics, title, instrumental } = req.body;
-  const response = await fetch("https://api.topmediai.com/v1/music", {
+  const response = await fetch(`${baseApi}/v1/music`, {
     method: "POST",
     headers: {
       "x-api-key": topMediaApiKey,
