@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Generate Music</h1>
+    <form id="musicForm" class="space-y-4">
+      <div class="relative w-full min-w-[200px]">
+        <textarea
+          id="prompt" name="prompt" rows="5" 
+          class="peer h-full min-h-[100px] w-full resize-none rounded-[7px] border border-blue-gray-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:resize-none disabled:border-0 disabled:bg-blue-gray-50"
+          placeholder="prompt"></textarea>
+      </div>
+
+      <div class="relative w-full min-w-[200px]">
+        <textarea
+          id="lyrics" name="lyrics" rows="10" 
+          class="peer h-full min-h-[100px] w-full resize-none rounded-[7px] border border-blue-gray-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:resize-none disabled:border-0 disabled:bg-blue-gray-50"
+          placeholder="lyrics"></textarea>
+      </div>
+
+      <div class="w-full max-w-sm min-w-[200px]">
+        <label for="title" class="block">Title</label>
+        <input type="text" id="title" name="title"
+          class="w-full bg-transparent text-slate-700 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow" placeholder="Type here...">
+      </div>
+      
+      <div>
+        <label for="instrumental" class="block text-sm font-medium text-gray-700">Instrumental</label>
+        <select id="instrumental" name="instrumental" 
+          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm " 
+          required>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+
+      <button type="submit" id="submitButton" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+        Generate
+      </button>
+    </form>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="hidden mt-4 text-center">
+      <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <p class="mt-2 text-sm text-gray-600">Generating your music...</p>
+    </div>
+
+    <!-- Music Results -->
+    <div id="musicResults" class="hidden mt-8 space-y-6"></div>
+  </div>
+
+  <script>
+
+document.getElementById('musicForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  // Get form values
+  const prompt = document.getElementById('prompt').value;
+  const lyrics = document.getElementById('lyrics').value;
+  const title = document.getElementById('title').value;
+  const instrumental = document.getElementById('instrumental').value;
+
+  // Show loading spinner and disable button
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const submitButton = document.getElementById('submitButton');
+  const musicResults = document.getElementById('musicResults');
+  const responseMessage = document.getElementById('responseMessage') || createResponseMessage();
+
+  loadingSpinner.classList.remove('hidden');
+  musicResults.innerHTML = '';
+  musicResults.classList.add('hidden');
+  submitButton.disabled = true;
+
+  try {
+    // Call the API
+    const response = await fetch('http://localhost:3000/generate-top', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        lyrics,
+        title,
+        instrumental: parseInt(instrumental),
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      musicResults.innerHTML = data.data.map(item => `
+        <div class="bg-gray-100 p-4 rounded-md shadow">
+          <h2 class="text-lg font-bold text-gray-800">${item.title}</h2>
+          <p class="text-sm text-gray-600 mb-2">Tags: ${item.tags}</p>
+          <img src="${item.image_file}" alt="${item.title}" class="w-full rounded-md mb-2">
+          <audio controls class="w-full">
+            <source src="${item.audio_file}" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      `).join('');
+      musicResults.classList.remove('hidden');
+    } else {
+      const error = await response.json();
+      responseMessage.innerText = `Error: ${error.message || 'Something went wrong!'}`;
+      responseMessage.classList.remove('hidden');
+    }
+  } catch (err) {
+    responseMessage.innerText = `Error: ${err.message}`;
+    responseMessage.classList.remove('hidden');
+  } finally {
+    loadingSpinner.classList.add('hidden');
+    submitButton.disabled = false;
+  }
+});
+
+function createResponseMessage() {
+  const responseMessage = document.createElement('div');
+  responseMessage.id = 'responseMessage';
+  responseMessage.className = 'mt-4 text-red-600 text-sm';
+  document.getElementById('musicForm').appendChild(responseMessage);
+  return responseMessage;
+}
+  </script>
+</body>
+</html>
